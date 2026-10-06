@@ -2,19 +2,19 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.sepehr071/asalbanoo-mcp",
   "title": "Asal Banoo",
-  "description": "Unofficial read-only Asal Banoo: search cosmetics and skin care, compare prices and sizes, reviews, deals.",
+  "description": "Unofficial read-only Asal Banoo: search cosmetics and skin care, compare prices, sizes, deals.",
   "repository": {
     "url": "https://github.com/sepehr071/asalbanoo-mcp",
     "source": "github"
   },
   "websiteUrl": "https://github.com/sepehr071/asalbanoo-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "asalbanoo-mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
