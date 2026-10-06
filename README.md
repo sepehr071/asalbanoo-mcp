@@ -167,7 +167,7 @@ There's no hosted server in between, no API key, and nothing about you is sent a
 | `ab_blog_post` | One guide as plain text, with the products and categories it links to |
 </details>
 
-All tools are annotated `readOnlyHint: true` and return compact structured JSON, so they don't flood the agent's context.
+All 12 tools are annotated `readOnlyHint: true` and return compact structured JSON, so they don't flood the agent's context.
 
 ## Good to know
 
