@@ -1,0 +1,42 @@
+[
+ {
+  "id": 3879,
+  "count": 5,
+  "link": "/product-category/skin-products/moisturizing/clinique-moisturizing/",
+  "name": "آبرسان کلینیک",
+  "slug": "clinique-moisturizing",
+  "parent": 85
+ },
+ {
+  "id": 224,
+  "count": 41,
+  "link": "/product-category/cosmetic/eyebrow-makeup/",
+  "name": "آرایش ابرو",
+  "slug": "eyebrow-makeup",
+  "parent": 63
+ },
+ {
+  "id": 184,
+  "count": 180,
+  "link": "/product-category/hair-products/hair-shampoo/",
+  "name": "شامپو",
+  "slug": "hair-shampoo",
+  "parent": 61
+ },
+ {
+  "id": 103,
+  "count": 193,
+  "link": "/product-category/skin-products/sunscreen/",
+  "name": "کرم ضد آفتاب",
+  "slug": "sunscreen",
+  "parent": 62
+ },
+ {
+  "id": 61,
+  "count": 505,
+  "link": "/product-category/hair-products/",
+  "name": "محصولات مو",
+  "slug": "hair-products",
+  "parent": 0
+ }
+]

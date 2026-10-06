@@ -1,0 +1,44 @@
+[
+ {
+  "id": 2348,
+  "count": 91,
+  "link": "/brand/graph/",
+  "name": "گراف",
+  "slug": "graph"
+ },
+ {
+  "id": 2275,
+  "count": 71,
+  "link": "/brand/forever52/",
+  "name": "فور اور 52",
+  "slug": "forever52"
+ },
+ {
+  "id": 2113,
+  "count": 68,
+  "link": "/brand/vitalayer/",
+  "name": "ویتالیر",
+  "slug": "vitalayer"
+ },
+ {
+  "id": 264,
+  "count": 60,
+  "link": "/brand/the-body-shop/",
+  "name": "بادی شاپ",
+  "slug": "the-body-shop"
+ },
+ {
+  "id": 1092,
+  "count": 59,
+  "link": "/brand/tatcha/",
+  "name": "تاچا",
+  "slug": "tatcha"
+ },
+ {
+  "id": 2086,
+  "count": 58,
+  "link": "/brand/lafarrerr/",
+  "name": "لافارر",
+  "slug": "lafarrerr"
+ }
+]
