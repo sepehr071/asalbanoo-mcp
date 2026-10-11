@@ -19,6 +19,7 @@ async def test_ab_search(client, api):
         "in_stock": True,
         "rating": 5.0,
         "variable": False,
+        "image": "https://asalbanooshop.com/wp-content/uploads/2021/01/%D8%B4%D8%A7%D9%85%D9%BE%D9%88-%D8%B6%D8%AF-%D8%B4%D9%88%D8%B1%D9%87-%D8%AE%D8%B4%DA%A9-%D9%88-%D9%85%D9%84%D8%A7%DB%8C%D9%85-%DA%A9%D8%A7%D9%86%D8%AF%DB%8C%D8%AF-600x600.jpg",
         "url": "https://asalbanooshop.com/product/candid-anti-dandruff-shampoo/",
     }
     assert api.params() == {
@@ -74,6 +75,7 @@ async def test_ab_find_cheapest(client, api):
     out = (await client.call_tool("ab_find_cheapest", {"query": "شامپو ضد شوره"})).structured_content
     # the eyelid shampoo and other non-matching titles are dropped; cheapest first
     assert [(o["id"], o["final_price"]) for o in out["offers"]] == [(22190, 503820), (22183, 559800)]
+    assert all(o["image"].startswith("https://") for o in out["offers"])
     assert out["scanned"] == 6 and out["total_matches"] == 112 and out["complete"] is False
     sent = api.params()
     assert (sent["orderby"], sent["stock_status"], sent["per_page"]) == ("price", "instock", "150")
@@ -93,7 +95,8 @@ async def test_ab_browse(client, api):
     }
     out = (await client.call_tool("ab_browse", args)).structured_content
     assert out["title"] == "شامپو shampoo" and out["total"] == 54 and out["last_page"] == 4
-    assert [p["id"] for p in out["products"]] == [22200, 22195, 22190, 738980, 22183]
+    assert [p["id"] for p in out["products"]] == [22183, 22190, 738980, 22195, 22200]  # fixture is ascending: re-sorted
+    assert all(p["image"].startswith("https://") for p in out["products"])
     assert api.params() == {
         "orderby": "price-desc",
         "stock_status": "instock,onsale",
@@ -172,8 +175,21 @@ async def test_ab_deals(client, api):
     out = (await client.call_tool("ab_deals", {"limit": 3})).structured_content
     assert out["count"] == 6
     assert [(d["id"], d["discount_pct"]) for d in out["deals"]] == [(7258, 30), (576314, 10), (428146, 10)]
+    assert all(d["image"].startswith("https://") for d in out["deals"])
     sent = api.params()
     assert (sent["stock_status"], sent["per_page"]) == ("instock,onsale", "300")
     api["/product-category/sunscreen/"] = fixture("deals.html")
     await client.call_tool("ab_deals", {"category": "sunscreen"})
     assert api.calls[-1].url.path == "/product-category/sunscreen/"
+
+
+async def test_ab_search_orders_by_displayed_price_and_range(client, api):
+    api["/"] = fixture("search.html")
+    args = {"query": "شامپو", "limit": 20}
+    out = (await client.call_tool("ab_search", {**args, "sort": "most_expensive"})).structured_content
+    prices = [p["final_price"] for p in out["products"]]
+    assert prices == sorted(prices, reverse=True) and len(prices) == 6
+    mid = prices[2]
+    out = (await client.call_tool("ab_search", {**args, "max_price": mid})).structured_content
+    assert out["products"] and all(p["final_price"] <= mid for p in out["products"])
+    assert len(out["products"]) < 6

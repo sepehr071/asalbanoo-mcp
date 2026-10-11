@@ -172,6 +172,7 @@ All 12 tools are annotated `readOnlyHint: true` and return compact structured JS
 ## Good to know
 
 - **Prices are in Toman.** `final_price` is what you pay, `price` is before discount, `discount_pct` is a whole percent. The site's structured data is in Rial; the server doesn't use it for prices.
+- **Images**: every product has `image` (absolute, percent-encoded https URL); `ab_product` also has `images` (gallery). To download one yourself send a browser `User-Agent`: plain python/httpx gets HTTP 403 from the site's WAF.
 - **Sizes and colors**: a product with variants is listed at its cheapest variant (`final_price`) up to `max_price`, with the biggest variant discount as `discount_pct`; `ab_product` gives each variant's price, stock and `max_qty`.
 - **Delivery**: outside Bandar Abbas only by Post Pishtaz, 7-10 working days. In Bandar Abbas by courier, next day when ordered before 13:00, or pick up in the two branches. The shipping fee is shown only at checkout and is not published.
 - **Stock**: `in_stock` means orderable online now; `stock_status` shows the exact count when few are left ("فقط 2 عدد در انبار موجود است"). When nothing in stock matches, `ab_search` adds `out_of_stock_matches` so a sold-out brand isn't mistaken for one the shop never carried.

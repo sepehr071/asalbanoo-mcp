@@ -6,7 +6,7 @@ import asyncio
 import html
 import re
 from typing import Annotated, Any, Literal
-from urllib.parse import unquote
+from urllib.parse import quote, unquote, urljoin
 
 from pydantic import Field
 
@@ -290,6 +290,11 @@ async def _listing(
         raise
     total = _first(r"woocommerce-result-count[^>]*>[^<]*?([\d,]+)\s*نتیجه", doc)
     products = _cards(doc)
+    # The site sorts and filters by an index that counts out-of-stock variants, while the card shows the in-stock
+    # price: drop cards outside the requested range and put the page in displayed-price order.
+    products = [p for p in products if p["final_price"] is None or _in_range(p, min_price, max_price)]
+    if sort in ("cheapest", "most_expensive"):
+        products.sort(key=lambda p: p["final_price"] or 0, reverse=sort == "most_expensive")
     return {
         "title": _text(_first(r"<h1[^>]*>(.*?)</h1>", doc)) or None,
         "total": int(total.replace(",", "")) if total else len(products),
@@ -297,6 +302,10 @@ async def _listing(
         "last_page": max([int(n) for n in re.findall(r'class="page-numbers"[^>]*>(\d+)<', doc)] + [page]),
         "products": products,
     }
+
+
+def _in_range(p: dict[str, Any], lo: int | None, hi: int | None) -> bool:
+    return (lo is None or p.get("max_price", p["final_price"]) >= lo) and (hi is None or p["final_price"] <= hi)
 
 
 def _cards(doc: str) -> list[dict[str, Any]]:
@@ -315,12 +324,20 @@ def _cards(doc: str) -> list[dict[str, Any]]:
             "in_stock": "outofstock" not in cls,
             "rating": float(rating) if rating else None,
             "variable": "product_type_variable" in body,
+            "image": image_url(_first(r"<img[^>]*?\ssrc=\"([^\"]+)\"", body)),
             "url": BASE + link.group(1)
             if link and link.group(1).startswith("/")
             else (link.group(1) if link else None),
         }
         cards.append(card)
     return cards
+
+
+def image_url(src: str | None) -> str | None:
+    """Absolute, percent-encoded https URL of an image src (cards use site-relative paths with Persian names)."""
+    if not src:
+        return None
+    return quote(urljoin(BASE + "/", html.unescape(src)), safe="/:%?=&")
 
 
 def price_info(fragment: str, labels: str = "") -> dict[str, Any]:

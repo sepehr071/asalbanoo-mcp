@@ -9,11 +9,16 @@ async def call(client, name, args):
     return result.structured_content
 
 
+def assert_images(items):
+    assert items and all(i["image"].startswith("https://asalbanooshop.com/wp-content/") for i in items)
+
+
 async def test_ab_search(client):
     data = await call(client, "ab_search", {"query": "شامپو", "sort": "cheapest", "limit": 10})
     assert data["total"] > 50 and len(data["products"]) == 10
     prices = [p["final_price"] for p in data["products"]]
     assert all(p["in_stock"] for p in data["products"]) and prices == sorted(prices) and prices[0] > 0
+    assert_images(data["products"])
 
 
 async def test_ab_find_cheapest(client):
@@ -21,6 +26,7 @@ async def test_ab_find_cheapest(client):
     prices = [o["final_price"] for o in data["offers"]]
     assert prices and prices == sorted(prices) and prices[0] > 0
     assert all("آفتاب" in o["title"] for o in data["offers"])
+    assert_images(data["offers"])
 
 
 async def test_ab_browse(client):
@@ -29,6 +35,7 @@ async def test_ab_browse(client):
     prices = [p["final_price"] for p in data["products"]]
     assert prices and prices == sorted(prices) and all(1000000 <= p <= 3000000 for p in prices)
     assert data["title"] and data["total"] >= len(prices)
+    assert_images(data["products"])
 
 
 async def test_ab_browse_brand_in_category(client):
@@ -57,6 +64,7 @@ async def test_ab_deals(client):
     pcts = [d["discount_pct"] for d in data["deals"]]
     assert pcts and pcts == sorted(pcts, reverse=True) and all(p > 0 for p in pcts)
     assert all(d["in_stock"] for d in data["deals"])
+    assert_images(data["deals"])
 
 
 async def test_ab_search_sold_out_brand(client):

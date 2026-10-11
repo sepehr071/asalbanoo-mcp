@@ -11,6 +11,11 @@ async def test_ab_product_simple(client, api):
     out = (await client.call_tool("ab_product", {"product_id": 6963})).structured_content
     assert out == {
         "id": 6963,
+        "image": "https://asalbanooshop.com/wp-content/uploads/2020/01/Esthederm-PureSystem-PureControlCare-min-600x600.jpg",
+        "images": [
+            "https://asalbanooshop.com/wp-content/uploads/2020/01/Esthederm-PureSystem-PureControlCare-min-600x600.jpg",
+            "https://asalbanooshop.com/wp-content/uploads/2020/01/Esthederm-PureSystem-PureControlCare-b-min-600x600.jpg",
+        ],
         "title": "کرم کنترل کننده چربی Pure System استادرم",
         "brand": "استادرم",
         "final_price": 10900000,
@@ -42,7 +47,8 @@ async def test_ab_product_simple(client, api):
 async def test_ab_product_variants(client, api):
     api["woodmart_quick_view"] = fixture("quick_view_756311.html")
     out = (await client.call_tool("ab_product", {"product_id": 756311})).structured_content
-    assert (out["final_price"], out["max_price"], out["max_qty"], out["in_stock"]) == (4700000, 6900000, None, True)
+    assert out["image"].startswith("https://") and (out["final_price"], out["max_price"]) == (4700000, 6900000)
+    assert (out["max_qty"], out["in_stock"]) == (None, True)
     assert out["variants"] == [
         {
             "variation_id": 756319,

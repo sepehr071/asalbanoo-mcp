@@ -12,6 +12,7 @@ async def call(client, name, args):
 async def test_ab_product(client):
     data = await call(client, "ab_product", {"product_id": 756311})
     assert data["brand"] and data["final_price"] > 0 and data["facts"]
+    assert data["image"].startswith("https://") and len(data.get("images", [data["image"]])) <= 4
     assert len(data["variants"]) >= 2 and all(v["final_price"] > 0 and v["options"] for v in data["variants"])
 
 

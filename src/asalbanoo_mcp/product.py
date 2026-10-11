@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from pydantic import Field
 
-from .catalog import _first, _text, price_info
+from .catalog import _first, _text, image_url, price_info
 from .http import ApiError, ajax, get_page
 from .registry import tool
 
@@ -46,8 +46,11 @@ async def ab_product(product_id: ProductId) -> dict[str, Any]:
         if cheapest:
             prices["price"] = cheapest["price"] or prices["price"]
         max_qty = None  # per variant
+    images = list(dict.fromkeys(image_url(u) for u in re.findall(r'<img[^>]*?\ssrc="([^"]+)"', doc)))[:4]
     return {
         "id": product_id,
+        "image": images[0] if images else None,
+        **({"images": images} if len(images) > 1 else {}),
         "title": _text(_first(r'<h1[^>]*class="product_title[^"]*"[^>]*>(.*?)</h1>', doc)),
         "brand": _text(_first(r"برند:</span>(.*?)</div>", doc)) or None,
         **prices,

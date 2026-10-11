@@ -31,7 +31,8 @@ Conventions: all prices are Toman (the site's JSON-LD is Rial; it is not used fo
 final_price is what the customer pays, price is before discount, discount_pct is an int.
 Variable products (several sizes/colors) list their cheapest variant as final_price and the top
 of the range as max_price; ab_product gives each variant. Ratings are 1-5, null when there are no
-reviews. Product ids are numbers like 6963; category and brand slugs are Latin ('hair-shampoo',
+reviews. Products have image (absolute URL; ab_product also images); fetching one needs a browser
+User-Agent. Product ids are numbers like 6963; category and brand slugs are Latin ('hair-shampoo',
 'graph'). Persian queries match best ('شامپو', 'ضد آفتاب'); search also matches descriptions,
 so check titles. Delivery: outside Bandar Abbas only Post Pishtaz (7-10 working days); in Bandar
 Abbas by courier, next day when ordered before 13:00. The shipping fee is shown only at checkout
