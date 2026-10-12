@@ -2,11 +2,11 @@
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/sepehr071/asalbanoo-mcp/main/.github/banner.png" alt="asalbanoo-mcp: let your AI agent find the cheapest sunscreen you can actually order on Asal Banoo" width="100%">
+<img src="https://raw.githubusercontent.com/sepehr071/asalbanoo-mcp/main/.github/banner.png" alt="asalbanoo-mcp: unofficial Asal Banoo MCP server for Claude, Cursor and Copilot" width="100%">
 
-# 🧴 asalbanoo-mcp
+# asalbanoo-mcp: Asal Banoo MCP server for AI agents 🧴
 
-**Let your AI agent shop for cosmetics and skin care on Asal Banoo.**<br>
+**Unofficial, read-only MCP server that lets your AI agent shop for cosmetics and skin care on Asal Banoo (عسل بانو), an Iranian online shop.**<br>
 Search shampoos, sunscreens, serums and make-up, compare real prices and sizes,<br>
 read reviews and the shop's skin advice, check stock and catch today's discounts, all from Claude, Cursor or Copilot.
 
@@ -19,11 +19,23 @@ read reviews and the shop's skin advice, check stock and catch today's discounts
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=asalbanoo&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJhc2FsYmFub28tbWNwIl19)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_asalbanoo--mcp-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=asalbanoo&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22asalbanoo-mcp%22%5D%7D)
 
-[Quick start](#quick-start) · [What it can do](#what-it-can-do) · [Tools](#tools) · [FAQ](#faq) · [فارسی](#فارسی)
+[Quick start](#quick-start) · [For AI agents](#for-ai-agents) · [What it can do](#what-it-can-do) · [Tools](#tools) · [FAQ](#faq) · [فارسی](#فارسی)
 
 </div>
 
 ---
+
+## For AI agents
+
+- **What:** unofficial MCP server for Asal Banoo (asalbanooshop.com, عسل بانو), an Iranian skin care, hair care, make-up and perfume shop. Queries work in Persian and English; prices are in Toman.
+- **Install:** `claude mcp add asalbanoo -- uvx asalbanoo-mcp` (stdio transport, needs [uv](https://docs.astral.sh/uv/getting-started/installation/) and Python 3.10+).
+- **Auth:** none. Optional `ASALBANOO_MCP_PROXY` sets an HTTP proxy for requests to asalbanooshop.com.
+- **Access:** read-only. No login, cart, orders or posted reviews, so no write tools exist.
+- **Tools:** 12, all prefixed `ab_`. Start with `ab_find_cheapest`, `ab_search`, `ab_product` or `ab_deals`. Typical sequence: `ab_find_cheapest` → `ab_product` → `ab_reviews`.
+- **Use when:** comparing cosmetics and skin care prices, sizes, stock, reviews or current discounts on Asal Banoo.
+- **Do not use when:** the user wants to buy something (no cart or checkout), or needs a shipping fee (the shop shows it only at checkout).
+- **Output:** compact JSON. `final_price` is what the buyer pays, `price` is before discount, `discount_pct` is a whole percent, ratings are 1-5 or `null`. Pass a product's `id` from `ab_search` or `ab_browse` as `product_id` to `ab_product` and `ab_reviews`.
+- **Machine-readable:** [`server.json`](server.json), and the catalog of all Iranian MCP servers at [awesome-iran-mcp](https://github.com/sepehr071/awesome-iran-mcp) ([TOOLS.md](https://github.com/sepehr071/awesome-iran-mcp/blob/main/TOOLS.md), [servers.json](https://github.com/sepehr071/awesome-iran-mcp/blob/main/servers.json), [llms.txt](https://github.com/sepehr071/awesome-iran-mcp/blob/main/llms.txt)).
 
 ## Why
 
@@ -197,6 +209,27 @@ results by default; `complete: false` in the reply means more lie past that, so 
 </details>
 
 <details>
+<summary><b>Is there an Asal Banoo API or MCP server for AI agents?</b></summary>
+
+Asal Banoo doesn't publish an official API for agents. `asalbanoo-mcp` is an unofficial MCP server that reads the
+public pages and endpoints of asalbanooshop.com and exposes them as 12 read-only tools.
+</details>
+
+<details>
+<summary><b>How do I use Asal Banoo with Claude, Cursor or Copilot?</b></summary>
+
+Install the server once (see [Quick start](#quick-start)), then ask in plain language, in Persian or English. In Claude Code
+the install is `claude mcp add asalbanoo -- uvx asalbanoo-mcp`.
+</details>
+
+<details>
+<summary><b>Is it official, safe and free?</b></summary>
+
+It is unofficial and free (MIT). It is read-only, needs no account or API key, and runs on your machine with no
+hosted server in between.
+</details>
+
+<details>
 <summary><b>I get "Could not reach asalbanooshop.com" or a bot challenge error</b></summary>
 
 The site answers new visitors with a small cookie challenge (HTTP 418); the server solves it automatically and
@@ -224,11 +257,13 @@ npx @modelcontextprotocol/inspector uvx asalbanoo-mcp
 |---|---|---|
 | `ASALBANOO_MCP_PROXY` | unset | HTTP proxy for every request, e.g. `http://user:pass@host:port` |
 
-## فارسی
+<a id="فارسی"></a>
+
+## فارسی: سرور MCP عسل بانو
 
 <div dir="rtl">
 
-**asalbanoo-mcp** به دستیار هوش مصنوعی شما (Claude، Cursor، Copilot و ...) اجازه می&zwnj;دهد در فروشگاه عسل بانو جستجو کند،
+**asalbanoo-mcp** یک سرور MCP غیررسمی برای فروشگاه ایرانی عسل بانو است و به دستیار هوش مصنوعی شما (Claude، Cursor، Copilot و ...) اجازه می&zwnj;دهد در فروشگاه عسل بانو جستجو کند،
 ارزان&zwnj;ترین محصول موجود را پیدا کند، قیمت حجم&zwnj;ها و رنگ&zwnj;های مختلف را مقایسه کند، نظرات و پاسخ مشاوران را بخواند و تخفیف&zwnj;های روز را ببیند.
 
 - فقط خواندنی است: وارد حساب نمی&zwnj;شود، سبد خرید نمی&zwnj;سازد، سفارش ثبت نمی&zwnj;کند و نظر نمی&zwnj;فرستد.
@@ -247,6 +282,8 @@ claude mcp add asalbanoo -- uvx asalbanoo-mcp
 
 بعد بپرسید: «ارزان&zwnj;ترین شامپو ضد شوره بین ۱ تا ۲ میلیون تومان کدام است و نظر خریداران درباره&zwnj;اش چیست؟»
 
+برای جستجو کافی است محصول یا برند را به فارسی یا انگلیسی بنویسید، مثلاً «ضد آفتاب» یا «vichy».
+
 </div>
 
 ## Development
@@ -264,6 +301,14 @@ docstring that tells the agent when to use it. Issues and PRs are welcome, espec
 
 Releases: bump the version in `pyproject.toml` and `server.json`, then push a `v*` tag. GitHub Actions tests,
 publishes to PyPI and the [MCP Registry](https://registry.modelcontextprotocol.io), and creates the GitHub Release.
+
+## Related servers
+
+- [Khanoumi MCP server](https://github.com/sepehr071/khanoumi-mcp) for cosmetics and skin care prices and shades
+- [Shopino MCP server](https://github.com/sepehr071/shopino-mcp) for fashion across thousands of Iranian shops
+- All Iranian MCP servers: [awesome-iran-mcp](https://github.com/sepehr071/awesome-iran-mcp)
+
+If this saves you clicks, a star helps others find it.
 
 ## Disclaimer
 
