@@ -2,7 +2,7 @@
 
 Every tool goes through `rest` (WordPress REST JSON), `ajax` (admin-ajax HTML fragments) or
 `get_page` (server-rendered HTML). `_send` caps concurrency, solves the site's HTTP 418 cookie
-challenge, retries once when the server drops the connection, and turns HTTP failures into
+challenge, retries once when the server drops the connection or answers 429/502/503 (fixed 1 s wait), and turns HTTP failures into
 `ToolError` messages the model can act on.
 """
 
@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import time
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
@@ -26,10 +28,13 @@ HEADERS = {
 
 MAX_CONCURRENCY = 4
 CHALLENGE = re.compile(r"_dgjsc=([a-f0-9]{32}:[0-9]{14})")
+RETRY_STATUS = (429, 502, 503)  # every request is a GET, so one retry is safe
+RETRY_DELAY = 1.0  # seconds, fixed
 
 _transport: httpx.AsyncBaseTransport | None = None
 _client: httpx.AsyncClient | None = None
 _limit: asyncio.Semaphore | None = None
+_cache: dict[Any, tuple[float, Any]] = {}
 
 
 class ApiError(ToolError):
@@ -40,6 +45,17 @@ def set_transport(transport: httpx.AsyncBaseTransport | None) -> None:
     """Swap the transport (tests use httpx.MockTransport). Drops the current client."""
     global _transport, _client, _limit
     _transport, _client, _limit = transport, None, None
+    _cache.clear()
+
+
+async def cached(key: Any, ttl: float, make: Callable[[], Awaitable[Any]]) -> Any:
+    """Return make()'s result, reused for `ttl` seconds per key. Only for results nobody mutates."""
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < ttl:
+        return hit[1]
+    value = await make()
+    _cache[key] = (time.monotonic(), value)
+    return value
 
 
 def _get_client() -> tuple[httpx.AsyncClient, asyncio.Semaphore]:
@@ -86,6 +102,7 @@ async def get_page(path: str, params: dict[str, Any] | None = None) -> tuple[str
 
 async def _send(method: str, url: str, **kwargs: Any) -> httpx.Response:
     client, limit = _get_client()
+    waited = False
     for attempt in (1, 2, 3):
         try:
             async with limit:
@@ -99,6 +116,10 @@ async def _send(method: str, url: str, **kwargs: Any) -> httpx.Response:
                     f"Could not reach asalbanooshop.com ({type(e).__name__}). Check the internet connection, "
                     "or set ASALBANOO_MCP_PROXY."
                 ) from e
+            continue
+        if r.status_code in RETRY_STATUS and not waited and attempt < 3:
+            waited = True
+            await asyncio.sleep(RETRY_DELAY)
             continue
         # HTTP 418 = bot challenge: a JS page that sets the _dgjsc cookie (valid about 2 h) and reloads.
         m = CHALLENGE.search(r.text) if r.status_code == 418 else None

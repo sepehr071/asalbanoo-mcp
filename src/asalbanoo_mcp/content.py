@@ -25,13 +25,12 @@ async def ab_shop_info(
             "returns, delivery rules), 'about' (the shop, branches), 'contact' (phone, address, hours)."
         ),
     ] = "faq",
+    full_text: Annotated[bool, Field(description="Return the whole page text, not the first 8000 chars.")] = False,
 ) -> dict[str, Any]:
     """Read one of the shop's policy pages as plain text: FAQ as question/answer pairs, other pages as text.
 
     Use for "how long does delivery take", "do you ship with Tipax", "can I return it", "where
-    is the shop". Summary (2026-10): outside Bandar Abbas only Post Pishtaz, 7-10 working days;
-    Bandar Abbas courier next day if ordered before 13:00, fee paid by the customer; no published
-    shipping fee or free-shipping threshold (shown only at checkout).
+    is the shop".
     """
     data, _ = await rest("wp/v2/pages", {"slug": PAGES[topic], "_fields": "link,title,modified,content"})
     if not data:
@@ -47,7 +46,7 @@ async def ab_shop_info(
     if toggles:
         out["faq"] = [{"question": _text(q), "answer": _plain(a)} for q, a in toggles]
     else:
-        out["text"] = _plain(body)[:8000]
+        out["text"] = _plain(body)[: None if full_text else 8000]
     return out
 
 

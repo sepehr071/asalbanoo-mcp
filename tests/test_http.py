@@ -78,6 +78,22 @@ async def test_http_errors_are_actionable(client, api, status, text):
     assert result.is_error and text in result.content[0].text
 
 
+async def test_rate_limit_is_retried_once(client, api):
+    answers = iter([429, 200])
+    api["/wp-json/wp/v2/posts"] = lambda r: httpx.Response(next(answers), json=[])
+    out = (await client.call_tool("ab_blog_posts", {})).structured_content
+    assert out["posts"] == [] and len(api.calls) == 2
+
+
+async def test_categories_and_brands_are_cached(client, api):
+    api["/wp-json/wp/v2/product_cat"] = []
+    api["/wp-json/wp/v2/pwb-brand"] = []
+    for _ in range(2):
+        await client.call_tool("ab_categories", {})
+        await client.call_tool("ab_brands", {})
+    assert len(api.calls) == 1 + 3
+
+
 async def test_rest_error_message_is_passed_on(client, api):
     api["/wp-json/wp/v2/posts"] = lambda r: httpx.Response(
         400, json={"code": "rest_invalid_param", "message": "Invalid parameter(s): per_page"}

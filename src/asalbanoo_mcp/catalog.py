@@ -10,7 +10,7 @@ from urllib.parse import quote, unquote, urljoin
 
 from pydantic import Field
 
-from .http import BASE, ApiError, get_page, rest
+from .http import BASE, ApiError, cached, get_page, rest
 from .registry import tool
 
 Query = Annotated[
@@ -41,6 +41,7 @@ MaxPrice = Annotated[int | None, Field(ge=1, description="Maximum current price 
 InStockOnly = Annotated[bool, Field(description="Only items that can be ordered now.")]
 Page = Annotated[int, Field(ge=1, le=200, description="Page number, from 1.")]
 Limit = Annotated[int, Field(ge=1, le=60, description="Products per page.")]
+CACHE_TTL = 3600  # categories and brands change rarely
 
 SORTS = {
     "default": None,
@@ -62,12 +63,11 @@ async def ab_search(
     page: Page = 1,
     limit: Limit = 15,
 ) -> dict[str, Any]:
-    """Search Asal Banoo products by keyword: price, discount, stock and rating of each match.
+    """Search products by keyword: price, discount, stock and rating of each match.
 
     Use first for "price of X" / "do you have X". Matching is broad (title and description),
-    so check titles. For the cheapest match use ab_find_cheapest; to list a whole category or
-    brand use ab_browse; full details and variants (sizes/colors) of one product: ab_product.
-    When nothing in stock matches, out_of_stock_matches counts the sold-out ones.
+    so check titles. Cheapest match: ab_find_cheapest; a category or brand: ab_browse; one
+    product's variants: ab_product. out_of_stock_matches counts sold-out matches when none is in stock.
     """
     params = {"s": query.strip(), "post_type": "product"}
     found = await _listing("/", params, sort, in_stock_only, False, min_price, max_price, None, page, limit)
@@ -91,15 +91,14 @@ async def ab_find_cheapest(
     ] = 150,
     limit: Annotated[int, Field(ge=1, le=50, description="Max offers to return.")] = 15,
 ) -> dict[str, Any]:
-    """Find the cheapest in-stock products for a keyword, one flat list sorted by current price (Toman).
+    """Find the cheapest in-stock products for a keyword, one list sorted by price (Toman).
 
-    Use when the user wants the lowest price for X. The site's search also matches descriptions,
-    so by default only titles containing every query word are kept. Variable products (several
-    sizes/colors) are listed at their cheapest variant: check ab_product for the size you need.
+    Use for the lowest price of X. Only titles containing every query word are kept by default
+    (the site search also matches descriptions). Check ab_product for the size you need.
     complete=false means more in-stock matches lie past `scanned`: raise scan.
     """
     params = {"s": query.strip(), "post_type": "product"}
-    found = await _listing("/", params, "cheapest", True, False, None, None, None, 1, scan)
+    found = await _listing("/", params, "cheapest", True, False, None, None, None, 1, scan, slim=False)
     words = _norm(query).split()
     offers = [
         p
@@ -111,7 +110,7 @@ async def ab_find_cheapest(
         "scanned": len(found["products"]),
         "total_matches": found["total"],
         "complete": len(found["products"]) >= (found["total"] or 0),
-        "offers": offers[:limit],
+        "offers": [_slim(p) for p in offers[:limit]],
     }
 
 
@@ -137,15 +136,13 @@ async def ab_browse(
         ),
     ] = None,
     page: Page = 1,
-    limit: Limit = 24,
+    limit: Limit = 20,
 ) -> dict[str, Any]:
-    """List the products of a category or brand (or the whole shop) with sorting, price range, stock and attribute filters.
+    """List products of a category or brand (or the whole shop) with sort, price range, stock and attribute filters.
 
-    Use for "cheapest shampoo for oily hair", "Graph brushes under 800,000 Toman", "newest
-    sunscreens". Pass a category slug (ab_categories), a brand slug (ab_brands), both, or neither
-    (whole shop). Attribute filters (volume, hair/skin type, gender, origin) come from ab_filters.
-    Variable products show their cheapest variant as final_price and max_price as the top of the
-    range. Details: ab_product; reviews: ab_reviews.
+    Use for "cheapest shampoo for oily hair", "Graph brushes under 800,000 Toman". Pass a category
+    slug (ab_categories), a brand slug (ab_brands), both, or neither; filters come from ab_filters.
+    Details: ab_product; reviews: ab_reviews.
     """
     path = f"/product-category/{category}/" if category else f"/brand/{brand}/" if brand else "/shop/"
     params: dict[str, Any] = {}
@@ -159,11 +156,9 @@ async def ab_filters(
     category: CategorySlug = None,
     brand: BrandSlug = None,
 ) -> dict[str, Any]:
-    """List the attribute filters of a category or brand listing (volume, hair type, skin type, gender, origin...)
-    with each value's product count.
+    """List the attribute filters of a category or brand (volume, hair/skin type, gender, origin) with in-stock counts.
 
-    Use before ab_browse when the user wants a size or a type inside a category: pass
-    {attribute: [value, ...]} as ab_browse's filters. Counts cover in-stock items.
+    Use before ab_browse for a size or type: pass {attribute: [value, ...]} as its filters.
     """
     path = f"/product-category/{category}/" if category else f"/brand/{brand}/" if brand else "/shop/"
     url, doc = await get_page(path, {"stock_status": "instock"})
@@ -190,16 +185,26 @@ async def ab_categories(
         Field(min_length=2, description="Optional filter on the Persian name or slug, e.g. 'شامپو' or 'sun'."),
     ] = None,
 ) -> dict[str, Any]:
-    """List Asal Banoo's product categories (about 70: skin, make-up, hair, perfume, kids) with slugs and counts.
+    """List product categories (about 70) with slugs and counts.
 
-    Use to get a category slug for ab_browse / ab_filters. parent is the id of the parent
-    category (0 = top level); count includes out-of-stock products.
+    Use to get a category slug for ab_browse / ab_filters. parent = parent category id (0 = top
+    level); count includes out-of-stock products.
     """
-    data, _ = await rest("wp/v2/product_cat", {"per_page": 100, "_fields": "id,name,slug,parent,count"})
-    categories = [
-        {"id": c["id"], "name": html.unescape(c["name"]), "slug": c["slug"], "parent": c["parent"], "count": c["count"]}
-        for c in data
-    ]
+
+    async def load() -> list[dict[str, Any]]:
+        data, _ = await rest("wp/v2/product_cat", {"per_page": 100, "_fields": "id,name,slug,parent,count"})
+        return [
+            {
+                "id": c["id"],
+                "name": html.unescape(c["name"]),
+                "slug": c["slug"],
+                "parent": c["parent"],
+                "count": c["count"],
+            }
+            for c in data
+        ]
+
+    categories = await cached("categories", CACHE_TTL, load)
     if query:
         q = _norm(query)
         categories = [c for c in categories if q in _norm(c["name"]) or q in c["slug"]]
@@ -214,41 +219,52 @@ async def ab_brands(
     ] = None,
     limit: Annotated[int, Field(ge=1, le=300, description="Max brands, biggest first.")] = 100,
 ) -> dict[str, Any]:
-    """List the brands Asal Banoo sells (about 250) with their slugs and product counts, biggest first.
+    """List brands (about 250) with slugs and product counts, biggest first.
 
-    Use to get the brand slug for ab_browse / ab_filters. Persian spellings vary; the Latin slug
-    usually matches better ('vichy', 'cerave', 'la-roche-posay').
+    Use to get the brand slug for ab_browse / ab_filters. The Latin slug usually matches better
+    than Persian spellings ('vichy', 'la-roche-posay').
     """
-    pages = await asyncio.gather(
-        *(
-            rest("wp/v2/pwb-brand", {"per_page": 100, "page": p, "_fields": "name,slug,count"})
-            for p in (1, 2, 3)  # ponytail: 246 brands in 2026-10; add a page when it passes 300
+
+    async def load() -> list[dict[str, Any]]:
+        pages = await asyncio.gather(
+            *(
+                rest("wp/v2/pwb-brand", {"per_page": 100, "page": p, "_fields": "name,slug,count"})
+                for p in (1, 2, 3)  # ponytail: 246 brands in 2026-10; add a page when it passes 300
+            )
         )
-    )
-    brands = [
-        {"slug": b["slug"], "name": html.unescape(b["name"]), "count": b["count"]} for data, _ in pages for b in data
-    ]
+        return [
+            {"slug": b["slug"], "name": html.unescape(b["name"]), "count": b["count"]}
+            for data, _ in pages
+            for b in data
+        ]
+
+    brands = await cached("brands", CACHE_TTL, load)
     if query:
         q = _norm(query)
         brands = [b for b in brands if q in _norm(b["name"]) or q.replace(" ", "-") in b["slug"]]
-    brands.sort(key=lambda b: -b["count"])
+    brands = sorted(brands, key=lambda b: -b["count"])
     return {"total": len(brands), "brands": brands[:limit]}
 
 
 @tool("Current deals")
 async def ab_deals(
     category: CategorySlug = None,
-    limit: Annotated[int, Field(ge=1, le=100, description="Max deals to return.")] = 30,
+    limit: Annotated[int, Field(ge=1, le=100, description="Max deals to return.")] = 20,
 ) -> dict[str, Any]:
-    """List the discounted in-stock products right now, biggest discount first (the site's "تخفیفات" page).
+    """List discounted in-stock products, biggest discount first.
 
-    Use for "what's on sale" / "discounted sunscreens". Optionally limit to one category slug
-    from ab_categories. Most discounts are 10%.
+    Use for "what's on sale" / "discounted sunscreens"; optionally one category slug from
+    ab_categories. Ranks the first 300 deals: complete=false means more exist (see total).
     """
     path = f"/product-category/{category}/" if category else "/shop/"
-    found = await _listing(path, {}, "default", True, True, None, None, None, 1, 300)
+    found = await _listing(path, {}, "default", True, True, None, None, None, 1, 300, slim=False)
     deals = sorted(found["products"], key=lambda p: (-p["discount_pct"], p["final_price"] or 0))
-    return {"count": len(deals), "deals": deals[:limit]}
+    return {
+        "count": len(deals),
+        "total": found["total"],
+        "complete": len(deals) >= found["total"],
+        "deals": [_slim(p) for p in deals[:limit]],
+    }
 
 
 async def _listing(
@@ -262,8 +278,9 @@ async def _listing(
     filters: dict[str, list[str]] | None,
     page: int,
     limit: int,
+    slim: bool = True,
 ) -> dict[str, Any]:
-    """One page of a WooCommerce listing (search, category, brand, shop) as product cards."""
+    """One page of a WooCommerce listing (search, category, brand, shop) as product cards (_slim'd unless slim=False)."""
     if min_price is not None and max_price is not None and min_price > max_price:
         raise ApiError("min_price must be <= max_price.")
     q = dict(params)
@@ -300,8 +317,18 @@ async def _listing(
         "total": int(total.replace(",", "")) if total else len(products),
         "page": page,
         "last_page": max([int(n) for n in re.findall(r'class="page-numbers"[^>]*>(\d+)<', doc)] + [page]),
-        "products": products,
+        "products": [_slim(p) for p in products] if slim else products,
     }
+
+
+def _slim(card: dict[str, Any]) -> dict[str, Any]:
+    """Drop null fields, a zero discount and a price equal to final_price (image and url are always kept)."""
+    out = {k: v for k, v in card.items() if v is not None}
+    if out.get("price") == out.get("final_price"):
+        out.pop("price", None)
+    if not out.get("discount_pct"):
+        out.pop("discount_pct", None)
+    return out
 
 
 def _in_range(p: dict[str, Any], lo: int | None, hi: int | None) -> bool:

@@ -20,11 +20,10 @@ ProductId = Annotated[
 
 @tool("Product details")
 async def ab_product(product_id: ProductId) -> dict[str, Any]:
-    """Get one product's record: price and discount (Toman), stock (with the exact count when low),
-    every variant (size/color) with its own price and stock, brand, categories, rating and key facts
-    (volume, expiry, skin/hair type, origin).
+    """Get one product: price/discount (Toman), stock (exact count when low), every size/color variant with its own
+    price and stock, brand, categories, rating, key facts (volume, expiry, skin/hair type, origin), image(s).
 
-    Use after ab_search / ab_browse when the user picks a product. Customer reviews: ab_reviews.
+    Use after ab_search / ab_browse when the user picks a product. Reviews: ab_reviews.
     """
     # Woodmart's quick view: 10 KB instead of the 170 KB product page, same price and stock markup.
     doc = await ajax("woodmart_quick_view", {"id": product_id})
@@ -72,12 +71,14 @@ async def ab_product(product_id: ProductId) -> dict[str, Any]:
 async def ab_reviews(
     product_id: ProductId,
     limit: Annotated[int, Field(ge=1, le=100, description="Max reviews to return, newest first.")] = 20,
+    full_text: Annotated[bool, Field(description="Return full review and reply texts, not 400-char cuts.")] = False,
 ) -> dict[str, Any]:
-    """Read customers' reviews and questions about a product (1-5 stars, newest first) with the shop's answers.
+    """Read customers' reviews and questions about a product (newest first) with the shop's answers.
 
-    Use as a quality check before recommending a product, or to see the shop's skin/hair advice
-    (staff often answer questions with a recommended product or category). rating is null for
-    a question without stars; verified_buyer marks a confirmed purchase. Dates are Jalali (1405-07-13).
+    Use as a quality check, or for the shop's skin/hair advice (staff answer questions with a
+    recommended product). rating is null for a question; verified_buyer marks a confirmed purchase.
+    Dates are Jalali (1405-07-13). Texts are cut at 400 chars (ending …) unless full_text=true. count and star_counts
+    cover all reviews on the page; truncated=true means more than `limit` exist.
     """
     try:
         _, doc = await get_page("/", {"post_type": "product", "p": product_id})
@@ -100,7 +101,7 @@ async def ab_reviews(
         item = {
             "author": _text(_first(r'woocommerce-review__author">(.*?)</strong>', body)),
             "date": (_first(r'<time[^>]*datetime="([^"]+)"', body) or "")[:10] or None,
-            "text": _text(_first(r'<div class="description">(.*?)</div>', body)),
+            "text": _clip(_text(_first(r'<div class="description">(.*?)</div>', body)), None if full_text else 400),
         }
         if depth == "1":
             stars = _first(r'<strong class="rating">(\d)</strong>', body)
@@ -121,8 +122,14 @@ async def ab_reviews(
         "count": len(reviews),
         "average": float(agg["ratingValue"]) if agg.get("ratingValue") else None,
         "star_counts": {str(s): rated.count(s) for s in range(5, 0, -1)},
+        "truncated": len(reviews) > limit,
         "reviews": reviews[:limit],
     }
+
+
+def _clip(text: str, n: int | None = 400) -> str:
+    """Cap untrusted user text; the marker shows it was cut. n=None keeps it whole."""
+    return text if n is None or len(text) <= n else text[: n - 1].rstrip() + "…"
 
 
 def _variants(doc: str) -> list[dict[str, Any]]:

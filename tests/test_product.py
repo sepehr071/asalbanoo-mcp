@@ -127,6 +127,19 @@ async def test_ab_reviews(client, api):
     assert api.params() == {"post_type": "product", "p": "6963"}
 
 
+async def test_ab_reviews_truncated_flag_and_text_cap(client, api):
+    api["/"] = fixture("product_6963.html").replace("خوبه اما مثل", "x" * 500 + "خوبه اما مثل", 1)
+    out = (await client.call_tool("ab_reviews", {"product_id": 6963, "limit": 2})).structured_content
+    assert out["truncated"] is True and out["count"] == 4
+    assert all(len(r["text"]) <= 400 for r in out["reviews"]) and out["reviews"][0]["text"].endswith("…")
+
+
+async def test_ab_reviews_full_text(client, api):
+    api["/"] = fixture("product_6963.html").replace("خوبه اما مثل", "x" * 500 + "خوبه اما مثل", 1)
+    out = (await client.call_tool("ab_reviews", {"product_id": 6963, "full_text": True})).structured_content
+    assert len(out["reviews"][0]["text"]) > 500 and not out["reviews"][0]["text"].endswith("…")
+
+
 async def test_ab_reviews_unknown_id(client, api):
     result = await client.call_tool("ab_reviews", {"product_id": 99999999})
     assert result.is_error and "No product 99999999" in result.content[0].text

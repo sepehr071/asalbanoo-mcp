@@ -28,6 +28,19 @@ async def test_ab_shop_info_text_page(client, api):
     assert result.is_error and "not found" in result.content[0].text
 
 
+async def test_ab_shop_info_full_text(client, api):
+    page = {
+        "link": "/about-us/",
+        "title": {"rendered": "x"},
+        "modified": "",
+        "content": {"rendered": "<p>" + "y" * 9000 + "</p>"},
+    }
+    api["/wp-json/wp/v2/pages"] = [page]
+    assert len((await client.call_tool("ab_shop_info", {"topic": "about"})).structured_content["text"]) == 8000
+    out = (await client.call_tool("ab_shop_info", {"topic": "about", "full_text": True})).structured_content
+    assert len(out["text"]) == 9000
+
+
 async def test_ab_blog_posts(client, api):
     api["/wp-json/wp/v2/posts"] = fixture("posts.json")
     out = (await client.call_tool("ab_blog_posts", {"query": "ضد آفتاب", "limit": 3})).structured_content

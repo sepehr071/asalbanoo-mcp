@@ -173,7 +173,7 @@ async def test_ab_deals(client, api):
     # one card made a 30% deal to check the ordering
     api["/shop/"] = "-30%".join(fixture("deals.html").rsplit("-10%", 1))  # last card: 7258
     out = (await client.call_tool("ab_deals", {"limit": 3})).structured_content
-    assert out["count"] == 6
+    assert out["count"] == 6 and out["total"] >= 6 and isinstance(out["complete"], bool)
     assert [(d["id"], d["discount_pct"]) for d in out["deals"]] == [(7258, 30), (576314, 10), (428146, 10)]
     assert all(d["image"].startswith("https://") for d in out["deals"])
     sent = api.params()

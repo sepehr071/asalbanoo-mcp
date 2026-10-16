@@ -34,7 +34,7 @@ read reviews and the shop's skin advice, check stock and catch today's discounts
 - **Tools:** 12, all prefixed `ab_`. Start with `ab_find_cheapest`, `ab_search`, `ab_product` or `ab_deals`. Typical sequence: `ab_find_cheapest` → `ab_product` → `ab_reviews`.
 - **Use when:** comparing cosmetics and skin care prices, sizes, stock, reviews or current discounts on Asal Banoo.
 - **Do not use when:** the user wants to buy something (no cart or checkout), or needs a shipping fee (the shop shows it only at checkout).
-- **Output:** compact JSON. `final_price` is what the buyer pays, `price` is before discount, `discount_pct` is a whole percent, ratings are 1-5 or `null`. Pass a product's `id` from `ab_search` or `ab_browse` as `product_id` to `ab_product` and `ab_reviews`.
+- **Output:** compact JSON. `final_price` is what the buyer pays, `price` is before discount, `discount_pct` is a whole percent, ratings are 1-5 or `null`. In product lists, null fields are left out: no `price` means it equals `final_price`, no `discount_pct` means 0, no `rating` means no reviews. Review texts are cut at 400 characters (`full_text=true` on `ab_reviews` returns them whole). Pass a product's `id` from `ab_search` or `ab_browse` as `product_id` to `ab_product` and `ab_reviews`.
 - **Machine-readable:** [`server.json`](server.json), and the catalog of all Iranian MCP servers at [awesome-iran-mcp](https://github.com/sepehr071/awesome-iran-mcp) ([TOOLS.md](https://github.com/sepehr071/awesome-iran-mcp/blob/main/TOOLS.md), [servers.json](https://github.com/sepehr071/awesome-iran-mcp/blob/main/servers.json), [llms.txt](https://github.com/sepehr071/awesome-iran-mcp/blob/main/llms.txt)).
 
 ## Why
@@ -174,7 +174,7 @@ There's no hosted server in between, no API key, and nothing about you is sent a
 
 | Tool | What it does |
 |---|---|
-| `ab_shop_info` | FAQ, terms, about and contact pages as text: delivery times, returns, wallet, branches |
+| `ab_shop_info` | FAQ, terms, about and contact pages as text: delivery (outside Bandar Abbas Post Pishtaz 7-10 working days; Bandar Abbas courier, next day before 13:00), returns, wallet, branches |
 | `ab_blog_posts` | Skin and hair care guides and comparisons, newest first |
 | `ab_blog_post` | One guide as plain text, with the products and categories it links to |
 </details>
