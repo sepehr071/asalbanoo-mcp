@@ -233,7 +233,9 @@ hosted server in between.
 <summary><b>I get "Could not reach asalbanooshop.com" or a bot challenge error</b></summary>
 
 The site answers new visitors with a small cookie challenge (HTTP 418); the server solves it automatically and
-retries a dropped connection once. If it still fails, check your internet connection. System proxy variables are
+retries timeouts, dropped connections, 429 and 5xx up to twice. Requests use a Chrome TLS and header profile. If the
+site serves a browser check instead, install `asalbanoo-mcp[browser]` and run `patchright install chromium`; the server
+then clears it in a headless browser. If it still fails, check your internet connection. System proxy variables are
 ignored on purpose; set `ASALBANOO_MCP_PROXY` if you need a proxy.
 </details>
 
@@ -255,7 +257,7 @@ npx @modelcontextprotocol/inspector uvx asalbanoo-mcp
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ASALBANOO_MCP_PROXY` | unset | HTTP proxy for every request, e.g. `http://user:pass@host:port` |
+| `ASALBANOO_MCP_PROXY` | unset | HTTP proxy for every request, e.g. `http://user:pass@host:port`; a comma-separated list is used one at a time, moving on after a block or connect error |
 
 <a id="فارسی"></a>
 
