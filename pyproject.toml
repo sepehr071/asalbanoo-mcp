@@ -1,13 +1,13 @@
 [project]
 name = "asalbanoo-mcp"
-version = "0.4.0"
+version = "0.4.1"
 description = "Unofficial read-only MCP server for Asal Banoo: search cosmetics, skin and hair care, compare prices and variants, find deals."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Sepehr Radmard", email = "sepehrr80@gmail.com" }]
 requires-python = ">=3.10"
-keywords = ["mcp", "model-context-protocol", "asalbanoo", "iran", "e-commerce", "shopping", "cosmetics", "skincare"]
+keywords = ["mcp", "mcp-server", "model-context-protocol", "ai-agents", "iran", "persian", "asalbanoo", "asal-banoo", "e-commerce", "shopping", "cosmetics", "skincare", "haircare", "price-comparison"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
