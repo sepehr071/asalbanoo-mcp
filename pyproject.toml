@@ -1,6 +1,6 @@
 [project]
 name = "asalbanoo-mcp"
-version = "0.4.1"
+version = "0.4.2"
 description = "Unofficial read-only MCP server for Asal Banoo: search cosmetics, skin and hair care, compare prices and variants, find deals."
 readme = "README.md"
 license = "MIT"
