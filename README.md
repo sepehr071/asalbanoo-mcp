@@ -15,6 +15,7 @@ search products, find the cheapest in-stock match, compare sizes and prices, rea
 [![CI](https://github.com/sepehr071/asalbanoo-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehr071/asalbanoo-mcp/actions/workflows/ci.yml)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.sepehr071%2Fasalbanoo--mcp-7c3aed)](https://registry.modelcontextprotocol.io/?q=asalbanoo-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](https://github.com/sepehr071/asalbanoo-mcp/blob/main/LICENSE)
+[![mcpfarsi](https://mcpfarsi.ir/badge/asalbanoo.svg)](https://mcpfarsi.ir/servers/asalbanoo/)
 
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=asalbanoo&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJhc2FsYmFub28tbWNwIl19)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_asalbanoo--mcp-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=asalbanoo&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22asalbanoo-mcp%22%5D%7D)
@@ -386,6 +387,7 @@ publishes to PyPI and the [MCP Registry](https://registry.modelcontextprotocol.i
 - [Banimode MCP server](https://github.com/sepehr071/banimode-mcp) for fashion prices and sizes on Banimode
 - [Digikala MCP server](https://github.com/sepehr071/digikala-mcp) for products and prices on Digikala
 - [Torob MCP server](https://github.com/sepehr071/torob-mcp) for comparing prices across Iranian shops
+- Listed on [mcpfarsi.ir](https://mcpfarsi.ir/servers/asalbanoo/), the Persian MCP marketplace
 
 If this saves you clicks, a star helps others find it.
 

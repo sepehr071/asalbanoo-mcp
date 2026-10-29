@@ -33,6 +33,7 @@ browser = ["patchright==1.63.0"]
 [project.urls]
 Homepage = "https://github.com/sepehr071/asalbanoo-mcp"
 Issues = "https://github.com/sepehr071/asalbanoo-mcp/issues"
+Website = "https://mcpfarsi.ir/servers/asalbanoo/"
 
 [project.scripts]
 asalbanoo-mcp = "asalbanoo_mcp.server:main"
