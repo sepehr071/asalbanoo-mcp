@@ -13,17 +13,14 @@ from .catalog import _first, _text, image_url, price_info
 from .http import ApiError, ajax, get_page
 from .registry import tool
 
-ProductId = Annotated[
-    int, Field(ge=1, le=100_000_000, description="Asal Banoo product id from ab_search / ab_browse, e.g. 6963.")
-]
+ProductId = Annotated[int, Field(ge=1, le=100_000_000, description="Product id from ab_search / ab_browse, e.g. 6963.")]
 
 
 @tool("Product details")
 async def ab_product(product_id: ProductId) -> dict[str, Any]:
-    """Get one product: price/discount (Toman), stock (exact count when low), every size/color variant with its own
-    price and stock, brand, categories, rating, key facts (volume, expiry, skin/hair type, origin), image(s).
+    """Get one product: price, stock, every size/color variant with its own price and stock, facts, images.
 
-    Use after ab_search / ab_browse when the user picks a product. Reviews: ab_reviews.
+    Use after ab_search / ab_browse. Reviews: ab_reviews.
     """
     # Woodmart's quick view: 10 KB instead of the 170 KB product page, same price and stock markup.
     doc = await ajax("woodmart_quick_view", {"id": product_id})
@@ -70,15 +67,13 @@ async def ab_product(product_id: ProductId) -> dict[str, Any]:
 @tool("Product reviews")
 async def ab_reviews(
     product_id: ProductId,
-    limit: Annotated[int, Field(ge=1, le=100, description="Max reviews to return, newest first.")] = 20,
-    full_text: Annotated[bool, Field(description="Return full review and reply texts, not 400-char cuts.")] = False,
+    limit: Annotated[int, Field(ge=1, le=100, description="Max reviews, newest first.")] = 20,
+    full_text: Annotated[bool, Field(description="Full texts, not 400-char cuts.")] = False,
 ) -> dict[str, Any]:
     """Read customers' reviews and questions about a product (newest first) with the shop's answers.
 
-    Use as a quality check, or for the shop's skin/hair advice (staff answer questions with a
-    recommended product). rating is null for a question; verified_buyer marks a confirmed purchase.
-    Dates are Jalali (1405-07-13). Texts are cut at 400 chars (ending …) unless full_text=true. count and star_counts
-    cover all reviews on the page; truncated=true means more than `limit` exist.
+    Use as a quality check or for the shop's staff advice. rating is null for a question. Dates are Jalali.
+    count and star_counts cover all reviews on the page; truncated=true means more than `limit` exist.
     """
     try:
         _, doc = await get_page("/", {"post_type": "product", "p": product_id})

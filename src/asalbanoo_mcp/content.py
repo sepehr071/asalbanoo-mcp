@@ -21,16 +21,14 @@ async def ab_shop_info(
     topic: Annotated[
         Literal["faq", "terms", "about", "contact"],
         Field(
-            description="'faq' (delivery times, shipping, originality, wallet, returns), 'terms' (cancellation, "
-            "returns, delivery rules), 'about' (the shop, branches), 'contact' (phone, address, hours)."
+            description="'faq' (delivery, returns, wallet), 'terms', 'about' (branches), 'contact' (phone, address)."
         ),
     ] = "faq",
-    full_text: Annotated[bool, Field(description="Return the whole page text, not the first 8000 chars.")] = False,
+    full_text: Annotated[bool, Field(description="Whole text, not the first 8000 chars.")] = False,
 ) -> dict[str, Any]:
     """Read one of the shop's policy pages as plain text: FAQ as question/answer pairs, other pages as text.
 
-    Use for "how long does delivery take", "do you ship with Tipax", "can I return it", "where
-    is the shop".
+    Use for delivery, returns, shop address.
     """
     data, _ = await rest("wp/v2/pages", {"slug": PAGES[topic], "_fields": "link,title,modified,content"})
     if not data:
@@ -54,15 +52,14 @@ async def ab_shop_info(
 async def ab_blog_posts(
     query: Annotated[
         str | None,
-        Field(min_length=2, max_length=100, description="Optional keyword, e.g. 'ضد آفتاب' or 'پوست چرب'."),
+        Field(min_length=2, max_length=100, description="Keyword, e.g. 'ضد آفتاب'."),
     ] = None,
-    page: Annotated[int, Field(ge=1, le=100, description="Page number, from 1, newest first.")] = 1,
+    page: Annotated[int, Field(ge=1, le=100, description="From 1.")] = 1,
     limit: Annotated[int, Field(ge=1, le=30, description="Posts per page.")] = 10,
 ) -> dict[str, Any]:
     """List Asal Banoo blog posts (skin and hair care guides, routines, "X vs Y" comparisons), newest first.
 
-    Use for advice questions ("best moisturizer for oily skin", "Vichy or Clinique?"): find a
-    matching post, then read it with ab_blog_post.
+    Use for advice questions: find a post, then read it with ab_blog_post.
     """
     params: dict[str, Any] = {"per_page": limit, "page": page, "_fields": "id,date,link,title,excerpt"}
     if query:
@@ -91,13 +88,12 @@ async def ab_blog_posts(
 
 @tool("Read a blog post")
 async def ab_blog_post(
-    post_id: Annotated[int, Field(ge=1, le=100_000_000, description="Post id from ab_blog_posts, e.g. 791485.")],
-    max_chars: Annotated[int, Field(ge=500, le=20000, description="Cut the text after this many characters.")] = 6000,
+    post_id: Annotated[int, Field(ge=1, le=100_000_000, description="From ab_blog_posts.")],
+    max_chars: Annotated[int, Field(ge=500, le=20000, description="Cut text after this many chars.")] = 6000,
 ) -> dict[str, Any]:
     """Read one blog post as plain text, plus the products and categories it links to.
 
-    Use after ab_blog_posts to answer care questions from the shop's own guides. Linked products
-    can be looked up with ab_search (by name) and categories browsed with ab_browse (slug).
+    Use after ab_blog_posts. Linked products: look up with ab_search; categories: ab_browse.
     """
     try:
         data, _ = await rest(f"wp/v2/posts/{post_id}", {"_fields": "id,date,link,title,content"})

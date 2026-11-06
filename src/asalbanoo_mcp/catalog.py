@@ -18,29 +18,29 @@ Query = Annotated[
     Field(
         min_length=2,
         max_length=100,
-        description="Product name or keyword, Persian or English, e.g. 'شامپو ضد شوره' or 'la roche posay'.",
+        description="Product keyword, Persian or English, e.g. 'شامپو ضد شوره'.",
     ),
 ]
 CategorySlug = Annotated[
     str | None,
     Field(
         pattern=r"^[a-z0-9-]{2,60}$",
-        description="Category slug from ab_categories, e.g. 'hair-shampoo' or 'sunscreen'.",
+        description="Slug from ab_categories, e.g. 'sunscreen'.",
     ),
 ]
 BrandSlug = Annotated[
     str | None,
-    Field(pattern=r"^[a-z0-9-]{2,60}$", description="Brand slug from ab_brands, e.g. 'graph' or 'la-roche-posay'."),
+    Field(pattern=r"^[a-z0-9-]{2,60}$", description="Slug from ab_brands, e.g. 'la-roche-posay'."),
 ]
 Sort = Annotated[
     Literal["default", "cheapest", "most_expensive", "newest", "popular", "top_rated"],
-    Field(description="Order of the listing. 'default' puts in-stock items first (relevance for a search)."),
+    Field(description="'default' = in-stock first (relevance for a search)."),
 ]
-MinPrice = Annotated[int | None, Field(ge=0, description="Minimum current price in Toman, e.g. 1000000.")]
-MaxPrice = Annotated[int | None, Field(ge=1, description="Maximum current price in Toman, e.g. 2000000.")]
-InStockOnly = Annotated[bool, Field(description="Only items that can be ordered now.")]
-Page = Annotated[int, Field(ge=1, le=200, description="Page number, from 1.")]
-Limit = Annotated[int, Field(ge=1, le=60, description="Products per page.")]
+MinPrice = Annotated[int | None, Field(ge=0, description="Toman, e.g. 1000000.")]
+MaxPrice = Annotated[int | None, Field(ge=1, description="Toman, e.g. 2000000.")]
+InStockOnly = Annotated[bool, Field(description="Only orderable items.")]
+Page = Annotated[int, Field(ge=1, le=200)]
+Limit = Annotated[int, Field(ge=1, le=60)]
 CACHE_TTL = 3600  # categories and brands change rarely
 
 SORTS = {
@@ -65,9 +65,8 @@ async def ab_search(
 ) -> dict[str, Any]:
     """Search products by keyword: price, discount, stock and rating of each match.
 
-    Use first for "price of X" / "do you have X". Matching is broad (title and description),
-    so check titles. Cheapest match: ab_find_cheapest; a category or brand: ab_browse; one
-    product's variants: ab_product. out_of_stock_matches counts sold-out matches when none is in stock.
+    Use first for "price of X" / "do you have X". Matches titles and descriptions, so check titles.
+    out_of_stock_matches counts sold-out matches when none is in stock.
     """
     params = {"s": query.strip(), "post_type": "product"}
     found = await _listing("/", params, sort, in_stock_only, False, min_price, max_price, None, page, limit)
@@ -83,18 +82,13 @@ async def ab_search(
 @tool("Find cheapest product")
 async def ab_find_cheapest(
     query: Query,
-    match_all_words: Annotated[
-        bool, Field(description="Keep only titles that contain every word of the query.")
-    ] = True,
-    scan: Annotated[
-        int, Field(ge=20, le=300, description="How many in-stock search results to scan, cheapest first.")
-    ] = 150,
-    limit: Annotated[int, Field(ge=1, le=50, description="Max offers to return.")] = 15,
+    match_all_words: Annotated[bool, Field(description="Titles must contain every query word.")] = True,
+    scan: Annotated[int, Field(ge=20, le=300, description="In-stock results to scan, cheapest first.")] = 150,
+    limit: Annotated[int, Field(ge=1, le=50, description="Max offers.")] = 15,
 ) -> dict[str, Any]:
     """Find the cheapest in-stock products for a keyword, one list sorted by price (Toman).
 
-    Use for the lowest price of X. Only titles containing every query word are kept by default
-    (the site search also matches descriptions). Check ab_product for the size you need.
+    Use for the lowest price of X. Check ab_product for the size you need.
     complete=false means more in-stock matches lie past `scanned`: raise scan.
     """
     params = {"s": query.strip(), "post_type": "product"}
@@ -131,8 +125,7 @@ async def ab_browse(
         | None,
         Field(
             max_length=5,
-            description="Attribute filters from ab_filters: attribute -> values (any of them matches), "
-            "e.g. {'bulk': ['250-میلی-لیتر'], 'hair': ['چرب']}.",
+            description="From ab_filters: attribute -> values (any matches), e.g. {'hair': ['چرب']}.",
         ),
     ] = None,
     page: Page = 1,
@@ -140,9 +133,7 @@ async def ab_browse(
 ) -> dict[str, Any]:
     """List products of a category or brand (or the whole shop) with sort, price range, stock and attribute filters.
 
-    Use for "cheapest shampoo for oily hair", "Graph brushes under 800,000 Toman". Pass a category
-    slug (ab_categories), a brand slug (ab_brands), both, or neither; filters come from ab_filters.
-    Details: ab_product; reviews: ab_reviews.
+    Use for "cheapest shampoo for oily hair". Slugs from ab_categories / ab_brands, filters from ab_filters.
     """
     path = f"/product-category/{category}/" if category else f"/brand/{brand}/" if brand else "/shop/"
     params: dict[str, Any] = {}
@@ -158,7 +149,7 @@ async def ab_filters(
 ) -> dict[str, Any]:
     """List the attribute filters of a category or brand (volume, hair/skin type, gender, origin) with in-stock counts.
 
-    Use before ab_browse for a size or type: pass {attribute: [value, ...]} as its filters.
+    Use before ab_browse for a size or type.
     """
     path = f"/product-category/{category}/" if category else f"/brand/{brand}/" if brand else "/shop/"
     url, doc = await get_page(path, {"stock_status": "instock"})
@@ -182,13 +173,12 @@ async def ab_filters(
 async def ab_categories(
     query: Annotated[
         str | None,
-        Field(min_length=2, description="Optional filter on the Persian name or slug, e.g. 'شامپو' or 'sun'."),
+        Field(min_length=2, description="Persian name or slug filter, e.g. 'شامپو'."),
     ] = None,
 ) -> dict[str, Any]:
     """List product categories (about 70) with slugs and counts.
 
-    Use to get a category slug for ab_browse / ab_filters. parent = parent category id (0 = top
-    level); count includes out-of-stock products.
+    Use to get a category slug. parent = parent category id (0 = top level); count includes out-of-stock.
     """
 
     async def load() -> list[dict[str, Any]]:
@@ -215,14 +205,13 @@ async def ab_categories(
 async def ab_brands(
     query: Annotated[
         str | None,
-        Field(min_length=2, description="Optional filter on the Persian name or Latin slug, e.g. 'graph' or 'ویشی'."),
+        Field(min_length=2, description="Persian name or Latin slug filter, e.g. 'graph'."),
     ] = None,
-    limit: Annotated[int, Field(ge=1, le=300, description="Max brands, biggest first.")] = 100,
+    limit: Annotated[int, Field(ge=1, le=300, description="Max brands.")] = 100,
 ) -> dict[str, Any]:
     """List brands (about 250) with slugs and product counts, biggest first.
 
-    Use to get the brand slug for ab_browse / ab_filters. The Latin slug usually matches better
-    than Persian spellings ('vichy', 'la-roche-posay').
+    Use to get a brand slug. Latin queries match better ('vichy').
     """
 
     async def load() -> list[dict[str, Any]]:
@@ -249,12 +238,11 @@ async def ab_brands(
 @tool("Current deals")
 async def ab_deals(
     category: CategorySlug = None,
-    limit: Annotated[int, Field(ge=1, le=100, description="Max deals to return.")] = 20,
+    limit: Annotated[int, Field(ge=1, le=100, description="Max deals.")] = 20,
 ) -> dict[str, Any]:
     """List discounted in-stock products, biggest discount first.
 
-    Use for "what's on sale" / "discounted sunscreens"; optionally one category slug from
-    ab_categories. Ranks the first 300 deals: complete=false means more exist (see total).
+    Use for "what's on sale". Ranks the first 300 deals: complete=false means more exist (see total).
     """
     path = f"/product-category/{category}/" if category else "/shop/"
     found = await _listing(path, {}, "default", True, True, None, None, None, 1, 300, slim=False)
