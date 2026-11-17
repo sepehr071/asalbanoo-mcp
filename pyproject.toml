@@ -1,9 +1,9 @@
 [project]
 name = "asalbanoo-mcp"
-version = "0.5.0"
+version = "0.5.1"
 description = "Unofficial read-only MCP server for Asal Banoo: search cosmetics, skin and hair care, compare prices and variants, find deals."
 readme = "README.md"
-license = "MIT"
+license = "PolyForm-Noncommercial-1.0.0"
 license-files = ["LICENSE"]
 authors = [{ name = "Sepehr Radmard", email = "sepehrr80@gmail.com" }]
 requires-python = ">=3.10"
