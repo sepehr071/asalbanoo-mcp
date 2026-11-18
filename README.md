@@ -20,7 +20,7 @@ search products, find the cheapest in-stock match, compare sizes and prices, rea
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=asalbanoo&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJhc2FsYmFub28tbWNwIl19)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_asalbanoo--mcp-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=asalbanoo&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22asalbanoo-mcp%22%5D%7D)
 
-[For AI agents](#for-ai-agents) · [Why](#why) · [What it can do](#what-it-can-do) · [Quick start](#quick-start) · [Tools](#tools) · [How it works](#how-it-works) · [Good to know](#good-to-know) · [FAQ](#faq) · [Configuration](#configuration) · [فارسی](#فارسی) · [Development](#development)
+[For AI agents](#for-ai-agents) · [Why](#why) · [What it can do](#what-it-can-do) · [Quick start](#quick-start) · [Tools](#tools) · [Good to know](#good-to-know) · [FAQ](#faq) · [Configuration](#configuration) · [فارسی](#فارسی) · [Development](#development)
 
 </div>
 
@@ -204,28 +204,6 @@ All 12 tools are prefixed `ab_` and annotated `readOnlyHint: true`. They return 
 | `ab_blog_posts` | Skin and hair care guides and comparisons, newest first |
 | `ab_blog_post` | One guide as plain text, with the products and categories it links to |
 </details>
-
-## How it works
-
-```text
-  AI agent  (Claude, Cursor, Copilot, ...)
-      │
-      │  MCP over stdio
-      ▼
-  asalbanoo-mcp  (runs on your machine)
-      │
-      │  HTTPS
-      └──────▶  asalbanooshop.com   listing pages, quick-view fragments, WordPress REST
-```
-
-`asalbanoo-mcp` runs locally and calls the same public pages and endpoints the asalbanooshop.com website uses.
-There's no hosted server in between, no API key, and nothing about you is sent anywhere else.
-
-The shop has no public product API: prices come from listing cards, the product quick view and the site's live search,
-so the server parses that HTML with the Python standard library. Requests go out through a Chrome-impersonating
-client, at most 2 at a time with a little jitter. It solves the site's small cookie challenge (HTTP 418)
-automatically, retries timeouts, dropped connections, 429 and 5xx up to twice, and keeps the category and brand lists
-for an hour. It only reads.
 
 ## Good to know
 
