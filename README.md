@@ -267,7 +267,7 @@ hosted server in between.
 <summary><b>I get "Could not reach asalbanooshop.com" or a bot challenge error</b></summary>
 
 The site answers new visitors with a small cookie challenge (HTTP 418); the server solves it automatically and
-retries timeouts, dropped connections, 429 and 5xx up to twice. Requests use a Chrome TLS and header profile. If the
+retries timeouts, dropped connections, 429 and 5xx up to twice. If the
 site serves a browser check instead, install `asalbanoo-mcp[browser]` and run `patchright install chromium`; the server
 then clears it in a headless browser. If it still fails, check your internet connection. System proxy variables are
 ignored on purpose; set `ASALBANOO_MCP_PROXY` if you need a proxy.
